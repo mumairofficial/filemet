@@ -8,14 +8,89 @@
 
 ### 🚀 Features
 
-* Emmet-inspired syntax for creating files & folders
-* Supports deep nesting and grouping
-* Multiple separator types: `+`, `,`
-* Mix of bracket styles: `[]`, `{}`, `()`
-* Works with dotfiles, extensions, and special characters
-* Smart whitespace handling
-* Real-time feedback on invalid syntax
-* Perfect for bootstrapping complex project scaffolds
+* **Emmet-inspired syntax** for creating files & folders
+* **Predefined framework templates** for popular tech stacks (React, Next.js, Go, Python, Django, etc.)
+* **Custom expression saving** and management
+* **Smart UI selection** between templates, custom expressions, and manual input
+* **Deep nesting and grouping** support
+* **Multiple separator types**: `+`, `,`
+* **Mix of bracket styles**: `[]`, `{}`, `()`
+* **Smart `+` symbol handling** for filenames vs separators
+* **Framework-specific patterns** (Next.js routes, Go project structure, etc.)
+* **Import/Export functionality** for custom expressions
+* **Context menu integration** and keyboard shortcuts
+* **Real-time feedback** on invalid syntax
+
+---
+
+## 🎯 Quick Start
+
+### Three Ways to Use Filemet:
+
+1. **🖱️ Right-click in Explorer** → "Filemet: Create File/Folder (Templates & Custom)"
+2. **⌨️ Keyboard shortcut**: `Ctrl+Shift+F` (Mac: `Cmd+Shift+F`)
+3. **🎨 Command Palette**: `Filemet: Create Files From Expression`
+
+---
+
+## 🏗️ Framework Templates
+
+Filemet includes predefined templates for popular frameworks and project types:
+
+### Frontend Templates
+- **React Basic** - Basic React project with components, hooks, utilities
+- **React Advanced** - Advanced React with context, services, testing
+- **Next.js Basic** - Next.js with app router structure
+- **Next.js Advanced** - Full-featured Next.js with authentication, API routes
+- **Svelte Basic** - Svelte project structure
+- **React Native** - Mobile app structure
+
+### Backend Templates
+- **Go Web API** - Clean architecture Go API
+- **Go CLI** - Command-line application structure
+- **Python Flask** - Flask REST API with blueprints
+- **Python FastAPI** - FastAPI with async structure
+- **Django Basic** - Django project with apps
+
+### Full-Stack Templates
+- **MERN Stack** - Complete MongoDB, Express, React, Node.js structure
+
+### Other Templates
+- **Testing Structure** - Comprehensive testing setup
+- **Documentation** - Complete docs structure
+
+### Using Framework Templates
+
+1. Right-click in Explorer or use Command Palette
+2. Select "Framework Templates"
+3. Choose a category (Frontend, Backend, etc.)
+4. Pick your framework template
+5. Preview and confirm
+
+---
+
+## 💾 Custom Expressions
+
+Save your frequently used file structures as custom expressions:
+
+### Creating Custom Expressions
+
+1. **From Manual Input**: Enter expression manually → choose "Save as Custom"
+2. **From Command**: `Filemet: Manage Custom Expressions` → "Create New"
+
+### Managing Custom Expressions
+
+- **View All**: Browse your saved expressions
+- **Export**: Save to JSON file for backup/sharing
+- **Import**: Load expressions from JSON file
+- **Edit/Delete**: Manage existing expressions
+
+### Example Custom Expression
+```
+Name: "React Feature Module"
+Expression: "features/{components/{FeatureList.tsx,FeatureItem.tsx},hooks/useFeature.ts,services/featureApi.ts,types/feature.ts}"
+Category: "react"
+```
 
 ---
 
@@ -273,6 +348,130 @@ Bad expressions are caught early. Examples:
 * `+file.ts` → ✅ Valid (+ prefix preserved, creates `+file.ts`)
 
 ### Plus Symbol (+) Usage Guidelines
+
+---
+
+## ⌨️ Commands & Shortcuts
+
+### Available Commands
+
+| Command | Description | Shortcut |
+|---------|-------------|----------|
+| `Filemet: Create File/Folder (Templates & Custom)` | Enhanced UI with templates and custom expressions | `Ctrl+Shift+F` / `Cmd+Shift+F` |
+| `Filemet: Create File/Folder (Quick)` | Quick manual input (backward compatibility) | - |
+| `Filemet: Create Files From Expression` | Command palette entry point | - |
+| `Filemet: Manage Custom Expressions` | Manage, import, export custom expressions | - |
+
+### Context Menu
+
+Right-click on any folder in VS Code Explorer:
+- **"Filemet: Create File/Folder (Templates & Custom)"** - Full-featured UI
+- **"Filemet: Create File/Folder (Quick)"** - Direct text input
+
+---
+
+## 🎨 Expression Examples
+
+### Basic Examples
+```bash
+# Single file
+README.md
+
+# Simple folder with files  
+docs/{getting-started.md,api.md}
+
+# Multiple folders
+src + tests + docs
+
+# Nested structure
+src/{components/Button.jsx + hooks/useAuth.js + utils/helpers.js}
+```
+
+### Framework-Specific Examples
+
+#### React Project
+```bash
+src/{
+  components/{
+    ui/{Button.tsx,Modal.tsx,Input.tsx},
+    layout/{Header.tsx,Footer.tsx,Sidebar.tsx}
+  },
+  hooks/{useAuth.ts,useApi.ts,useLocalStorage.ts},
+  services/{api.ts,auth.ts},
+  utils/{helpers.ts,constants.ts},
+  types/{user.ts,api.ts}
+}
+```
+
+#### Next.js App Router
+```bash
+app/{
+  page.tsx,
+  layout.tsx,
+  loading.tsx,
+  error.tsx,
+  (dashboard)/{
+    page.tsx,
+    analytics/page.tsx,
+    settings/page.tsx
+  },
+  api/{
+    users/route.ts,
+    auth/route.ts
+  }
+}
+```
+
+#### Go Project
+```bash
+cmd/api/main.go + 
+internal/{
+  handlers/{users.go,auth.go},
+  models/{user.go,auth.go},
+  services/{user_service.go,auth_service.go},
+  config/config.go
+} + 
+pkg/{
+  database/postgres.go,
+  utils/helpers.go
+} + 
+go.mod + README.md
+```
+
+#### Python Flask API
+```bash
+app/{
+  __init__.py,
+  models/{__init__.py,user.py,auth.py},
+  routes/{__init__.py,users.py,auth.py},
+  services/{__init__.py,user_service.py,auth_service.py},
+  utils/{__init__.py,helpers.py}
+} + 
+tests/{__init__.py,test_users.py,test_auth.py} + 
+requirements.txt + .env.example
+```
+
+---
+
+## 🔧 Best Practices
+
+### Expression Organization
+1. **Use descriptive names** for custom expressions
+2. **Categorize expressions** by framework or purpose
+3. **Include descriptions** to remember what each expression does
+4. **Use consistent naming** patterns
+
+### Syntax Tips
+1. **Prefer commas** over plus signs within groups for clarity
+2. **Use plus signs** for top-level separation
+3. **Group related files** together using brackets
+4. **Use meaningful folder names** that reflect their purpose
+
+### Framework Integration
+1. **Start with predefined templates** for common patterns
+2. **Customize templates** to match your team's conventions
+3. **Save frequently used structures** as custom expressions
+4. **Share expressions** with your team via export/import
 
 **✅ Correct Usage:**
 * `file1.ts + file2.ts` - Separator with spaces

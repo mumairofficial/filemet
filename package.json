@@ -1,8 +1,8 @@
 {
   "name": "filemet",
   "displayName": "Filemet",
-  "description": "Blazing-fast Emmet-style file & folder generator for VS Code.",
-  "version": "0.1.0",
+  "description": "Blazing-fast Emmet-style file & folder generator for VS Code with framework templates and custom expressions.",
+  "version": "0.2.0",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -40,19 +40,53 @@
       },
       {
         "command": "filemet.createStructure",
-        "title": "Filemet Create File/Folder",
-        "category": "Filemet: Emmet-Style Generator"
+        "title": "Filemet: Create File/Folder (Quick)",
+        "category": "Filemet"
+      },
+      {
+        "command": "filemet.createStructureWithUI",
+        "title": "Filemet: Create File/Folder (Templates & Custom)",
+        "category": "Filemet"
+      },
+      {
+        "command": "filemet.manageExpressions",
+        "title": "Filemet: Manage Custom Expressions",
+        "category": "Filemet"
       }
     ],
     "menus": {
       "explorer/context": [
         {
-          "command": "filemet.createStructure",
+          "command": "filemet.createStructureWithUI",
           "group": "2_workspace@1"
+        },
+        {
+          "command": "filemet.createStructure",
+          "group": "2_workspace@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "filemet.createFiles",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "filemet.createStructureWithUI",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "filemet.manageExpressions"
         }
       ]
     },
-    "keybindings": []
+    "keybindings": [
+      {
+        "command": "filemet.createStructureWithUI",
+        "key": "ctrl+shift+f",
+        "mac": "cmd+shift+f",
+        "when": "explorerViewletVisible"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
