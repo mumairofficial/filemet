@@ -31,32 +31,73 @@ export class FileStructureParser {
     }
 
         private parsePart(part: string): string[] {
-        // Check if this part has grouping brackets
-        const groupMatch = part.match(/^([^[\({]*)([\[{(])(.+)([\]})])$/);
+        // Check for obvious mismatched brackets before trying to find grouping
+        if (/[\[{(].*[\]})]$/.test(part)) {
+            // Contains brackets, let's validate them
+            const brackets = part.match(/([\[{(])|([}\])])/g);
+            if (brackets) {
+                const stack: string[] = [];
+                const pairs: Record<string, string> = { '[': ']', '{': '}', '(': ')' };
+                
+                for (const bracket of brackets) {
+                    if (['[', '{', '('].includes(bracket)) {
+                        stack.push(bracket);
+                    } else {
+                        const expected = stack.pop();
+                        if (!expected || pairs[expected] !== bracket) {
+                            throw new Error('Mismatched brackets');
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Find the last properly matched bracket pair for grouping
+        const groupMatch = this.findGroupingBrackets(part);
         
         if (groupMatch) {
-            const basePath = groupMatch[1].trim();
-            const openBracket = groupMatch[2];
-            const groupContent = groupMatch[3];
-            const closeBracket = groupMatch[4];
+            const { basePath, openBracket, groupContent, closeBracket } = groupMatch;
             
             // Validate matching brackets
             if (!this.isMatchingBracket(openBracket, closeBracket)) {
                 throw new Error('Mismatched brackets');
             }
             
-            // Parse group content
-            const groupPaths = this.parseExpression(groupContent);
+            // Determine if this should be treated as grouping or literal text
+            // For parentheses: only treat as grouping if it has separators or is clearly meant for grouping
+            // For square/curly brackets: always treat as grouping (more explicit grouping syntax)
+            const isParentheses = openBracket === '(' && closeBracket === ')';
+            const hasGroupingSeparators = /[+,]/.test(groupContent);
+            const hasNestedPaths = /[\/]/.test(groupContent);
+            const isEmptyGroup = groupContent.trim().length === 0;
             
-            if (basePath) {
-                return groupPaths.map(p => {
-                    // Clean up path concatenation to avoid double slashes
-                    const cleanBase = basePath.replace(/\/+$/, ''); // Remove trailing slashes
-                    const cleanPath = p.replace(/^\/+/, ''); // Remove leading slashes
-                    return `${cleanBase}/${cleanPath}`;
-                });
+            // For parentheses, be more restrictive - only treat as grouping if:
+            // 1. It has separators (+ or ,) OR
+            // 2. It's at the end of the path (no trailing path components) AND has content
+            // For brackets/braces, treat as grouping unless it looks like a literal path
+            const isAtEndOfPath = basePath && !basePath.includes('/') && groupContent.trim().length > 0;
+            const shouldTreatAsGrouping = isParentheses 
+                ? (hasGroupingSeparators || isAtEndOfPath)
+                : true; // Square brackets and curly braces are always grouping
+            
+            if (shouldTreatAsGrouping || isEmptyGroup) {
+                // Parse group content
+                const groupPaths = this.parseExpression(groupContent);
+                
+                if (basePath) {
+                    return groupPaths.map(p => {
+                        // Clean up path concatenation to avoid double slashes
+                        const cleanBase = basePath.trim().replace(/\/+$/, ''); // Remove whitespace and trailing slashes
+                        const cleanPath = p.replace(/^\/+/, ''); // Remove leading slashes
+                        return `${cleanBase}/${cleanPath}`;
+                    });
+                } else {
+                    return groupPaths;
+                }
             } else {
-                return groupPaths;
+                // Treat as literal path - just normalize whitespace
+                const normalized = part.trim().replace(/\s*\/\s*/g, '/');
+                return [normalized];
             }
         } else {
             // Simple path without grouping - normalize whitespace around path separators
@@ -101,6 +142,51 @@ export class FileStructureParser {
         }
         
         return parts;
+    }
+
+    private findGroupingBrackets(part: string): {basePath: string, openBracket: string, groupContent: string, closeBracket: string} | null {
+        // Find the rightmost opening bracket that has a matching closing bracket at the end
+        const openBrackets = ['[', '{', '('];
+        const closeBrackets = [']', '}', ')'];
+        
+        for (let i = part.length - 1; i >= 0; i--) {
+            const char = part[i];
+            const closeIndex = closeBrackets.indexOf(char);
+            
+            if (closeIndex !== -1) {
+                // Found a closing bracket, now look for matching opening bracket
+                const expectedOpen = openBrackets[closeIndex];
+                let bracketCount = 1;
+                let openIndex = -1;
+                
+                for (let j = i - 1; j >= 0; j--) {
+                    if (part[j] === char) {
+                        bracketCount++;
+                    } else if (part[j] === expectedOpen) {
+                        bracketCount--;
+                        if (bracketCount === 0) {
+                            openIndex = j;
+                            break;
+                        }
+                    }
+                }
+                
+                if (openIndex !== -1) {
+                    // Found matching brackets, check if this is at the end
+                    if (i === part.length - 1) {
+                        return {
+                            basePath: part.substring(0, openIndex),
+                            openBracket: expectedOpen,
+                            groupContent: part.substring(openIndex + 1, i),
+                            closeBracket: char
+                        };
+                    }
+                }
+                break; // Only check the rightmost closing bracket
+            }
+        }
+        
+        return null;
     }
 
     private isMatchingBracket(open: string, close: string): boolean {

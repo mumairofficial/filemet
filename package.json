@@ -40,7 +40,7 @@
       },
       {
         "command": "filemet.createStructure",
-        "title": "Create File & Folder Structure from Expression",
+        "title": "Filemet Create File/Folder",
         "category": "Filemet: Emmet-Style Generator"
       }
     ],
