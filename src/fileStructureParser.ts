@@ -126,8 +126,36 @@ export class FileStructureParser {
                     throw new Error('Unopened closing bracket');
                 }
             } else if (separators.includes(char) && bracketDepth === 0) {
-                parts.push(current);
-                current = '';
+                // For + separator: special handling for filename prefixes vs separators
+                // For , separator: always treat as separator (existing behavior)
+                if (char === '+') {
+                    const hasWhitespaceBefore = i > 0 && /\s/.test(expr[i - 1]);
+                    const hasWhitespaceAfter = i < expr.length - 1 && /\s/.test(expr[i + 1]);
+                    const isAtStartWithSpace = i === 0 && i < expr.length - 1 && /\s/.test(expr[i + 1]);
+                    const isAtStartOfToken = current.trim().length === 0;
+                    const isAfterPathSeparator = i > 0 && expr[i - 1] === '/';
+                    
+                    // Treat + as separator if:
+                    // 1. It has whitespace around it, OR
+                    // 2. It's at start with space, OR  
+                    // 3. It's NOT at the start of a token AND NOT immediately after a path separator
+                    //    (e.g., file.ts+another.ts should split, but folder/+component.tsx should not)
+                    const isSeparator = hasWhitespaceBefore || hasWhitespaceAfter || isAtStartWithSpace || 
+                                       (!isAtStartOfToken && !isAfterPathSeparator);
+                    
+                    if (isSeparator) {
+                        // This is a separator
+                        parts.push(current);
+                        current = '';
+                    } else {
+                        // This is part of a filename (+file.ts or folder/+component.tsx)
+                        current += char;
+                    }
+                } else {
+                    // For comma and other separators, always treat as separator
+                    parts.push(current);
+                    current = '';
+                }
             } else {
                 current += char;
             }

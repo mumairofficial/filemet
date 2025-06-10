@@ -195,7 +195,16 @@ suite('FileStructureParser Test Suite', () => {
         });
 
         test('should ignore leading separators', () => {
-            assert.deepStrictEqual(parser.parse('+file.ts'), ['file.ts']);
+            assert.deepStrictEqual(parser.parse('+ file.ts'), ['file.ts']);
+        });
+
+        test('should support filenames with + prefix', () => {
+            assert.deepStrictEqual(parser.parse('+file.ts'), ['+file.ts']);
+            assert.deepStrictEqual(parser.parse('folder/+component.tsx'), ['folder/+component.tsx']);
+            assert.deepStrictEqual(parser.parse('routes/{+page.svelte,+layout.svelte}'), [
+                'routes/+page.svelte',
+                'routes/+layout.svelte'
+            ]);
         });
     });
 
