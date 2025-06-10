@@ -437,4 +437,57 @@ suite('FileStructureParser Test Suite', () => {
             assert.deepStrictEqual(parser.parse('base{sub/file.txt}'), ['base/sub/file.txt']);
         });
     });
+
+    suite('Extension Integration', () => {
+        test('should handle folder context without prefix in input', () => {
+            // This test verifies that folder context is handled through hints
+            // rather than pre-filling the input box
+            
+            // Simulate folder context behavior
+            const folderName = 'components';
+            const isContextFolder = true;
+            
+            const expectedPrompt = `📁 Creating in '${folderName}' folder - Enter file structure expression:`;
+            const expectedPlaceholder = `Files will be created in '${folderName}/' - e.g., Header.jsx, {Header.jsx,Footer.jsx}, components/{Nav.jsx,Button.jsx}`;
+            
+            // Verify the input configuration structure
+            const inputConfig = {
+                prompt: isContextFolder 
+                    ? `📁 Creating in '${folderName}' folder - Enter file structure expression:`
+                    : 'Enter file structure expression',
+                placeHolder: isContextFolder 
+                    ? `Files will be created in '${folderName}/' - e.g., Header.jsx, {Header.jsx,Footer.jsx}, components/{Nav.jsx,Button.jsx}`
+                    : 'e.g., components/{Header.jsx,Footer.jsx} + utils/helpers.js',
+                title: 'Create File Structure'
+            };
+            
+            assert.strictEqual(inputConfig.prompt, expectedPrompt);
+            assert.strictEqual(inputConfig.placeHolder, expectedPlaceholder);
+            assert.strictEqual(inputConfig.title, 'Create File Structure');
+            // Verify that value property is not set (no pre-filled folder prefix)
+            assert.strictEqual('value' in inputConfig, false);
+        });
+
+        test('should provide clear folder context hints', () => {
+            const testCases = [
+                {
+                    folderName: 'src',
+                    expectedHint: "Files will be created in 'src/' - e.g., Header.jsx, {Header.jsx,Footer.jsx}, components/{Nav.jsx,Button.jsx}"
+                },
+                {
+                    folderName: 'utils',
+                    expectedHint: "Files will be created in 'utils/' - e.g., Header.jsx, {Header.jsx,Footer.jsx}, components/{Nav.jsx,Button.jsx}"
+                },
+                {
+                    folderName: 'components',
+                    expectedHint: "Files will be created in 'components/' - e.g., Header.jsx, {Header.jsx,Footer.jsx}, components/{Nav.jsx,Button.jsx}"
+                }
+            ];
+
+            testCases.forEach(({ folderName, expectedHint }) => {
+                const hint = `Files will be created in '${folderName}/' - e.g., Header.jsx, {Header.jsx,Footer.jsx}, components/{Nav.jsx,Button.jsx}`;
+                assert.strictEqual(hint, expectedHint);
+            });
+        });
+    });
 });

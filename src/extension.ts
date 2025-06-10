@@ -53,8 +53,10 @@ export function activate(context: vscode.ExtensionContext) {
     const createStructureCommand = vscode.commands.registerCommand(
         'filemet.createStructure',
         async (uri: vscode.Uri) => {
-            // Determine the target directory
+            // Determine the target directory and folder context
             let targetPath: string;
+            let isContextFolder: boolean = false;
+            let folderName: string = '';
             
             if (uri) {
                 // Called from context menu
@@ -62,6 +64,8 @@ export function activate(context: vscode.ExtensionContext) {
                 if (stat.type === vscode.FileType.Directory) {
                     // Right-clicked on a folder
                     targetPath = uri.fsPath;
+                    isContextFolder = true;
+                    folderName = path.basename(uri.fsPath);
                 } else {
                     // Right-clicked on a file, use its parent directory
                     targetPath = path.dirname(uri.fsPath);
@@ -76,13 +80,19 @@ export function activate(context: vscode.ExtensionContext) {
                 targetPath = workspaceFolder.uri.fsPath;
             }
 
-            // Show input box for the expression
-            const expression = await vscode.window.showInputBox({
-                prompt: 'Enter file structure expression',
-                placeHolder: 'e.g., components/{Header.jsx,Footer.jsx} + utils/helpers.js',
-                value: '',
+            // Prepare input box configuration
+            const inputConfig = {
+                prompt: isContextFolder 
+                    ? `📁 Creating in '${folderName}' folder - Enter file structure expression:`
+                    : 'Enter file structure expression',
+                placeHolder: isContextFolder 
+                    ? `Files will be created in '${folderName}/' - e.g., Header.jsx, {Header.jsx,Footer.jsx}, components/{Nav.jsx,Button.jsx}`
+                    : 'e.g., components/{Header.jsx,Footer.jsx} + utils/helpers.js',
                 title: 'Create File Structure'
-            });
+            };
+
+            // Show input box for the expression
+            const expression = await vscode.window.showInputBox(inputConfig);
 
             if (!expression) {
                 return;

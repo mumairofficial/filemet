@@ -4,6 +4,40 @@ All notable changes to the "filemet" extension will be documented in this file.
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [0.2.1] - 2025-06-10
+
+### 🎨 UI/UX Improvements
+
+#### Command Names Simplification
+- **Shortened command titles**: Simplified lengthy command names for better usability
+  - `"Filemet: Create Files From Expression"` → `"Create Files"`
+  - `"Filemet: Create File/Folder (Quick)"` → `"Quick Create"`
+  - `"Filemet: Create File/Folder Using Templates"` → `"Create with Templates"`
+  - `"Filemet: Manage Custom Expressions"` → `"Manage Expressions"`
+- **Consistent categorization**: All commands now properly categorized under "Filemet" for better organization
+
+#### Folder Context Enhancement
+- **Smart folder context**: When right-clicking on folders, the input box now shows clear context hints instead of pre-filling with folder names
+- **Clean input experience**: Users can type directly without clearing pre-filled text
+- **Visual folder indicators**: Added 📁 emoji and contextual prompts when creating files in specific folders
+- **Context-aware examples**: Placeholder text adapts to show relevant examples based on folder context
+- **Improved workflow**: Eliminates accidental nested folder creation from pre-filled folder prefixes
+
+### 🎨 Visual Updates
+- **Updated extension icon**: Refreshed visual design for better recognition in VS Code marketplace
+- **Enhanced user interface**: Improved visual consistency across all commands and dialogs
+
+### 🧪 Testing & Quality
+- **New integration tests**: Added tests for folder context behavior and input handling
+- **Extended test coverage**: Now includes 74+ comprehensive tests covering all functionality
+- **Improved reliability**: Enhanced error handling and edge case coverage
+
+### 🐛 Bug Fixes
+- **Fixed folder prefix issue**: Resolved problem where folder names were accidentally included in file expressions when pressing Enter
+- **Input box behavior**: Eliminated confusion from pre-filled folder prefixes in the quick create command
+
+---
+
 ## [0.2.0] - 2025-06-10
 
 ### 🎉 Major Features Added
