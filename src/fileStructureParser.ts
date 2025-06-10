@@ -30,7 +30,7 @@ export class FileStructureParser {
         return result;
     }
 
-    private parsePart(part: string): string[] {
+        private parsePart(part: string): string[] {
         // Check if this part has grouping brackets
         const groupMatch = part.match(/^([^[\({]*)([\[{(])(.+)([\]})])$/);
         
@@ -49,13 +49,19 @@ export class FileStructureParser {
             const groupPaths = this.parseExpression(groupContent);
             
             if (basePath) {
-                return groupPaths.map(p => `${basePath}/${p}`);
+                return groupPaths.map(p => {
+                    // Clean up path concatenation to avoid double slashes
+                    const cleanBase = basePath.replace(/\/+$/, ''); // Remove trailing slashes
+                    const cleanPath = p.replace(/^\/+/, ''); // Remove leading slashes
+                    return `${cleanBase}/${cleanPath}`;
+                });
             } else {
                 return groupPaths;
             }
         } else {
-            // Simple path without grouping
-            return [part.trim()];
+            // Simple path without grouping - normalize whitespace around path separators
+            const normalized = part.trim().replace(/\s*\/\s*/g, '/');
+            return [normalized];
         }
     }
 
