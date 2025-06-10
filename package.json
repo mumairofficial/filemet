@@ -2,7 +2,7 @@
   "name": "filemet",
   "displayName": "Filemet",
   "description": "Blazing-fast Emmet-style file & folder generator for VS Code with framework templates and custom expressions.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "mumairofficial",
   "engines": {
     "vscode": "^1.100.0"
@@ -96,7 +96,11 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "package": "vsce package --no-dependencies",
+    "package:pre-release": "vsce package --no-dependencies --pre-release",
+    "publish": "vsce publish --no-dependencies",
+    "publish:pre-release": "vsce publish --no-dependencies --pre-release"
   },
   "devDependencies": {
     "@types/vscode": "^1.100.0",
@@ -107,6 +111,7 @@
     "eslint": "^9.25.1",
     "typescript": "^5.8.3",
     "@vscode/test-cli": "^0.0.10",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.2.1"
   }
 }

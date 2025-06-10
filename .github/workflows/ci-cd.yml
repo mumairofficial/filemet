@@ -196,7 +196,16 @@ jobs:
       run: npm install -g @vscode/vsce
       
     - name: 📦 Package extension
-      run: vsce package --no-dependencies
+      run: |
+        echo "📦 Creating VSIX package..."
+        vsce package --no-dependencies
+        
+        # List created packages
+        ls -la *.vsix
+        
+        # Verify package contents
+        VSIX_FILE=$(ls *.vsix | head -1)
+        echo "✅ Created package: ${VSIX_FILE}"
       
     - name: 📁 Upload VSIX
       uses: actions/upload-artifact@v4

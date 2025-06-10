@@ -1,0 +1,295 @@
+name: 🏗️ Build & Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+        - prerelease
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  # Build extension package
+  build:
+    name: 🏗️ Build Extension
+    runs-on: ubuntu-latest
+    outputs:
+      package-version: ${{ steps.package.outputs.version }}
+      package-name: ${{ steps.package.outputs.name }}
+    
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 📦 Install dependencies
+      run: |
+        npm ci
+        npm install -g @vscode/vsce
+
+    - name: 🔍 Validate package.json
+      run: |
+        echo "🔍 Validating package.json..."
+        node -e "
+          const pkg = require('./package.json');
+          console.log('✅ Package name:', pkg.name);
+          console.log('✅ Version:', pkg.version);
+          console.log('✅ Publisher:', pkg.publisher || 'Not set');
+          if (!pkg.publisher) {
+            console.error('❌ Publisher not set in package.json');
+            process.exit(1);
+          }
+        "
+
+    - name: 🏗️ Compile TypeScript
+      run: npm run compile
+
+    - name: 🧪 Run tests
+      run: npm test
+
+    - name: 🔍 Run linting
+      run: npm run lint
+
+    - name: 📦 Package extension
+      id: package
+      run: |
+        echo "📦 Creating VSIX package..."
+        vsce package --no-dependencies
+        
+        # Get package info
+        PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        PACKAGE_NAME=$(node -p "require('./package.json').name")
+        VSIX_FILE="${PACKAGE_NAME}-${PACKAGE_VERSION}.vsix"
+        
+        echo "version=${PACKAGE_VERSION}" >> $GITHUB_OUTPUT
+        echo "name=${PACKAGE_NAME}" >> $GITHUB_OUTPUT
+        echo "vsix-file=${VSIX_FILE}" >> $GITHUB_OUTPUT
+        
+        # Verify the package was created
+        if [ -f "${VSIX_FILE}" ]; then
+          echo "✅ Package created: ${VSIX_FILE}"
+          ls -la *.vsix
+        else
+          echo "❌ Package not found!"
+          exit 1
+        fi
+
+    - name: 🔍 Test package installation
+      run: |
+        echo "🔍 Testing package installation..."
+        VSIX_FILE="${{ steps.package.outputs.name }}-${{ steps.package.outputs.version }}.vsix"
+        code --install-extension "${VSIX_FILE}" --force || echo "⚠️ Could not test installation (VS Code not available)"
+
+    - name: 📁 Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: vsix-package
+        path: "*.vsix"
+        retention-days: 30
+
+    - name: 📁 Upload for release
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-artifacts
+        path: |
+          *.vsix
+          package.json
+          README.md
+          CHANGELOG.md
+        retention-days: 90
+
+  # Multi-platform compatibility test
+  test-compatibility:
+    name: 🧪 Test Compatibility
+    runs-on: ${{ matrix.os }}
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 📦 Install dependencies
+      run: npm ci
+
+    - name: 🏗️ Compile TypeScript
+      run: npm run compile
+
+    - name: 🧪 Run tests
+      run: npm test
+      env:
+        DISPLAY: ':99'
+
+    - name: 📦 Test package creation
+      run: |
+        npm install -g @vscode/vsce
+        vsce package --no-dependencies
+        ls -la *.vsix
+
+  # Create GitHub release
+  create-release:
+    name: 🚀 Create Release
+    runs-on: ubuntu-latest
+    needs: [build, test-compatibility]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 📁 Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: release-artifacts
+        path: ./release
+
+    - name: 📝 Generate release notes
+      id: release-notes
+      run: |
+        VERSION="${{ needs.build.outputs.package-version }}"
+        echo "🚀 Generating release notes for version ${VERSION}..."
+        
+        # Extract changelog for this version
+        if [ -f "CHANGELOG.md" ]; then
+          # Get content between version headers
+          awk "/^## \[${VERSION}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md > release_notes.md
+          
+          if [ -s release_notes.md ]; then
+            echo "✅ Generated release notes from CHANGELOG.md"
+          else
+            echo "📝 No specific changelog found, generating basic notes..."
+            echo "🎉 Release ${VERSION}" > release_notes.md
+            echo "" >> release_notes.md
+            echo "See [CHANGELOG.md](./CHANGELOG.md) for detailed changes." >> release_notes.md
+          fi
+        else
+          echo "📝 No CHANGELOG.md found, generating basic notes..."
+          echo "🎉 Release ${VERSION}" > release_notes.md
+        fi
+        
+        echo "📄 Release notes:"
+        cat release_notes.md
+
+    - name: 🚀 Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          ./release/*.vsix
+        body_path: release_notes.md
+        draft: false
+        prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publish to VS Code Marketplace (manual trigger or on release)
+  publish-marketplace:
+    name: 📢 Publish to Marketplace
+    runs-on: ubuntu-latest
+    needs: [build, test-compatibility]
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'alpha') && !contains(github.ref, 'beta')
+    environment: production
+    
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 📦 Install dependencies
+      run: |
+        npm ci
+        npm install -g @vscode/vsce
+
+    - name: 🏗️ Compile TypeScript
+      run: npm run compile
+
+    - name: 🚀 Publish to VS Code Marketplace
+      run: vsce publish --no-dependencies
+      env:
+        VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+    - name: ✅ Publish success notification
+      run: |
+        VERSION="${{ needs.build.outputs.package-version }}"
+        echo "🎉 Successfully published ${VERSION} to VS Code Marketplace!"
+        echo "🔗 View at: https://marketplace.visualstudio.com/items?itemName=${{ secrets.PUBLISHER_NAME }}.filemet"
+
+  # Manual version bump workflow
+  version-bump:
+    name: 📈 Version Bump
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: 📦 Install dependencies
+      run: npm ci
+
+    - name: 📈 Bump version
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        npm version ${{ github.event.inputs.release_type }} --no-git-tag-version
+        
+        NEW_VERSION=$(node -p "require('./package.json').version")
+        echo "🚀 Bumped version to ${NEW_VERSION}"
+        
+        git add package.json
+        git commit -m "🔖 Bump version to ${NEW_VERSION}"
+        git push
+
+    - name: 🏷️ Create tag
+      run: |
+        NEW_VERSION=$(node -p "require('./package.json').version")
+        git tag "v${NEW_VERSION}"
+        git push origin "v${NEW_VERSION}"
+        echo "🏷️ Created tag v${NEW_VERSION}"
