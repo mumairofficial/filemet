@@ -3,6 +3,7 @@
   "displayName": "Filemet",
   "description": "Blazing-fast Emmet-style file & folder generator for VS Code with framework templates and custom expressions.",
   "version": "0.2.1",
+  "publisher": "mumairofficial",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -36,22 +37,22 @@
     "commands": [
       {
         "command": "filemet.createFiles",
-        "title": "Create Files",
-        "category": "Filemet"
+        "title": "Filemet: Create Files From Expression"
       },
       {
         "command": "filemet.createStructure",
-        "title": "Quick Create",
+        "title": "Filemet: Create File/Folder with Expression",
+        "description": "Create a file or folder structure using a custom expression.",
         "category": "Filemet"
       },
       {
         "command": "filemet.createStructureWithUI",
-        "title": "Create with Templates",
+        "title": "Filemet: Create File/Folder Using Templates",
         "category": "Filemet"
       },
       {
         "command": "filemet.manageExpressions",
-        "title": "Manage Expressions",
+        "title": "Filemet: Manage Custom Expressions",
         "category": "Filemet"
       }
     ],
