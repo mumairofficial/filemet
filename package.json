@@ -2,7 +2,7 @@
   "name": "filemet",
   "displayName": "Filemet",
   "description": "Blazing-fast Emmet-style file & folder generator for VS Code.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "engines": {
     "vscode": "^1.100.0"
   },
