@@ -208,6 +208,92 @@ suite('FileStructureParser Test Suite', () => {
         });
     });
 
+    suite('Plus Symbol (+) Handling', () => {
+        test('should treat + as separator when surrounded by spaces', () => {
+            assert.deepStrictEqual(parser.parse('file1.ts + file2.ts'), ['file1.ts', 'file2.ts']);
+            assert.deepStrictEqual(parser.parse('a.js + b.js + c.js'), ['a.js', 'b.js', 'c.js']);
+            assert.deepStrictEqual(parser.parse('component.tsx + styles.css'), ['component.tsx', 'styles.css']);
+        });
+
+        test('should treat + as separator when no spaces (legacy behavior)', () => {
+            assert.deepStrictEqual(parser.parse('file.ts+another.ts'), ['file.ts', 'another.ts']);
+            assert.deepStrictEqual(parser.parse('a.js+b.js+c.js'), ['a.js', 'b.js', 'c.js']);
+            assert.deepStrictEqual(parser.parse('main.go+utils.go'), ['main.go', 'utils.go']);
+        });
+
+        test('should preserve + as filename prefix', () => {
+            assert.deepStrictEqual(parser.parse('+file.ts'), ['+file.ts']);
+            assert.deepStrictEqual(parser.parse('+layout.svelte'), ['+layout.svelte']);
+            assert.deepStrictEqual(parser.parse('+error.svelte'), ['+error.svelte']);
+        });
+
+        test('should preserve + after path separators', () => {
+            assert.deepStrictEqual(parser.parse('src/+page.ts'), ['src/+page.ts']);
+            assert.deepStrictEqual(parser.parse('routes/blog/+layout.svelte'), ['routes/blog/+layout.svelte']);
+            assert.deepStrictEqual(parser.parse('app/(auth)/+page.tsx'), ['app/(auth)/+page.tsx']);
+        });
+
+        test('should handle + in complex grouping scenarios', () => {
+            assert.deepStrictEqual(parser.parse('routes/{+page.svelte,+layout.svelte}'), [
+                'routes/+page.svelte',
+                'routes/+layout.svelte'
+            ]);
+            assert.deepStrictEqual(parser.parse('src[+main.ts,+utils.ts]'), [
+                'src/+main.ts',
+                'src/+utils.ts'
+            ]);
+            assert.deepStrictEqual(parser.parse('app/{+page.tsx,+layout.tsx,+error.tsx}'), [
+                'app/+page.tsx',
+                'app/+layout.tsx',
+                'app/+error.tsx'
+            ]);
+        });
+
+        test('should handle + with nested paths in groups', () => {
+            assert.deepStrictEqual(parser.parse('routes/{blog/+page.svelte,admin/+layout.svelte}'), [
+                'routes/blog/+page.svelte',
+                'routes/admin/+layout.svelte'
+            ]);
+            assert.deepStrictEqual(parser.parse('src{components/+Button.tsx + utils/+helpers.ts}'), [
+                'src/components/+Button.tsx',
+                'src/utils/+helpers.ts'
+            ]);
+        });
+
+        test('should handle mixed + usage (separators and prefixes)', () => {
+            assert.deepStrictEqual(parser.parse('+file.ts + normal.ts'), ['+file.ts', 'normal.ts']);
+            assert.deepStrictEqual(parser.parse('regular.js + src/+special.js'), ['regular.js', 'src/+special.js']);
+            assert.deepStrictEqual(parser.parse('+component.tsx+styles.css'), ['+component.tsx', 'styles.css']);
+        });
+
+        test('should ignore leading + with space (separator behavior)', () => {
+            assert.deepStrictEqual(parser.parse('+ file.ts'), ['file.ts']);
+            assert.deepStrictEqual(parser.parse('+ main.go + utils.go'), ['main.go', 'utils.go']);
+        });
+
+        test('should handle framework-specific + patterns', () => {
+            // SvelteKit patterns
+            assert.deepStrictEqual(parser.parse('src/routes/{+page.svelte,+layout.svelte,+error.svelte}'), [
+                'src/routes/+page.svelte',
+                'src/routes/+layout.svelte',
+                'src/routes/+error.svelte'
+            ]);
+            
+            // Next.js with + prefixed components
+            assert.deepStrictEqual(parser.parse('app/(dashboard)/{+page.tsx,+layout.tsx}'), [
+                'app/(dashboard)/+page.tsx',
+                'app/(dashboard)/+layout.tsx'
+            ]);
+            
+            // Mixed framework patterns
+            assert.deepStrictEqual(parser.parse('src/{+main.ts + components/+Button.tsx + utils/helpers.ts}'), [
+                'src/+main.ts',
+                'src/components/+Button.tsx',
+                'src/utils/helpers.ts'
+            ]);
+        });
+    });
+
     suite('Special Characters & File Types', () => {
         test('should handle common file extensions', () => {
             assert.deepStrictEqual(parser.parse('components{App.tsx,Button.jsx,styles.css,types.ts}'), [
