@@ -1,5 +1,10 @@
 ## 📁 Filemet - Emmet-Inspired File & Folder Generator for VS Code
 
+[![Test Suite](https://github.com/mumairofficial/filemet/actions/workflows/test.yml/badge.svg)](https://github.com/mumairofficial/filemet/actions/workflows/test.yml)
+[![CI/CD Pipeline](https://github.com/mumairofficial/filemet/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/mumairofficial/filemet/actions/workflows/ci-cd.yml)
+[![Version](https://img.shields.io/visual-studio-marketplace/v/mumairofficial.filemet)](https://marketplace.visualstudio.com/items?itemName=mumairofficial.filemet)
+[![Downloads](https://img.shields.io/visual-studio-marketplace/d/mumairofficial.filemet)](https://marketplace.visualstudio.com/items?itemName=mumairofficial.filemet)
+
 **Filemet** is a blazing-fast, Emmet-style file and folder structure generator for Visual Studio Code. Type expressive path-like syntax and instantly scaffold deeply nested folders and files — no more tedious clicking.
 
 > ✨ Perfect for frontend, backend, and fullstack projects — React, Next.js, Node.js, Go, Python, and beyond.
@@ -496,6 +501,23 @@ nested file tree from string
 vscode bulk file creation
 folder and file generator plugin
 ```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### 🚀 Quick Start for Contributors
+
+1. **Fork & Clone** the repository
+2. **Install dependencies**: `npm install`
+3. **Run tests**: `npm test`
+4. **Start developing**: Press `F5` in VS Code to test your changes
+
+### 🏗️ Adding Framework Templates
+
+Want to add support for your favorite framework? Check out our [template contribution guide](CONTRIBUTING.md#-adding-framework-templates) and submit a PR!
 
 ---
 

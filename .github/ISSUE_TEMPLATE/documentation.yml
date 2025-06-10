@@ -1,0 +1,68 @@
+name: 📚 Documentation Issue
+description: Report an issue with documentation or request documentation improvements
+title: "[Docs]: "
+labels: ["documentation", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation! 📚
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: 📋 Documentation Type
+      description: What type of documentation issue is this?
+      options:
+        - README improvement
+        - Missing documentation
+        - Incorrect information
+        - Example needs update
+        - Framework template documentation
+        - API documentation
+        - Installation guide
+        - Tutorial/guide request
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: 📍 Location
+      description: Where is the documentation issue located?
+      placeholder: "e.g., README.md line 45, Framework Templates section, etc."
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: 📖 Documentation Issue
+      description: Describe the documentation problem or improvement needed
+      placeholder: What's wrong with the current documentation or what's missing?
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: 💡 Suggested Improvement
+      description: How would you improve this documentation?
+      placeholder: Describe your suggested changes or additions
+
+  - type: dropdown
+    id: target-audience
+    attributes:
+      label: 👥 Target Audience
+      description: Who would benefit from this documentation improvement?
+      options:
+        - New users
+        - Experienced users
+        - Contributors/developers
+        - Framework-specific users
+        - All users
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 🎯 Additional Context
+      description: Any additional context about this documentation issue

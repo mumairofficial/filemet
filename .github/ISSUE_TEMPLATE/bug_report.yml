@@ -1,0 +1,123 @@
+name: 🐛 Bug Report
+description: File a bug report to help us improve Filemet
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! 🐛
+        
+        Please fill out this form to help us understand and reproduce the issue.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 🐛 Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe the bug...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 🔄 Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Open VS Code
+        2. Right-click in Explorer
+        3. Select 'Filemet: Create File/Folder'
+        4. Enter expression: ...
+        5. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: ✅ Expected Behavior
+      description: A clear description of what you expected to happen.
+      placeholder: Describe what should have happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: ❌ Actual Behavior
+      description: A clear description of what actually happened.
+      placeholder: Describe what actually happened...
+    validations:
+      required: true
+
+  - type: input
+    id: expression
+    attributes:
+      label: 🔤 File Structure Expression
+      description: The expression you were trying to use (if applicable)
+      placeholder: "e.g., src/{components/{Header.jsx,Footer.jsx},utils/helpers.js}"
+
+  - type: dropdown
+    id: template-type
+    attributes:
+      label: 📁 Template Type (if applicable)
+      description: What type of template were you using?
+      options:
+        - Framework Template
+        - Custom Expression
+        - Manual Input
+        - Not applicable
+
+  - type: input
+    id: framework
+    attributes:
+      label: 🏗️ Framework Template (if applicable)
+      description: Which framework template were you using?
+      placeholder: "e.g., React Basic, Next.js Advanced, Go Web API"
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 🌍 Environment
+      description: Please provide your environment details
+      placeholder: |
+        - OS: [e.g., Windows 11, macOS 13.0, Ubuntu 22.04]
+        - VS Code Version: [e.g., 1.85.0]
+        - Filemet Version: [e.g., 0.2.0]
+        - Node.js Version: [e.g., 18.16.0] (if relevant)
+    validations:
+      required: true
+
+  - type: textarea
+    id: error-logs
+    attributes:
+      label: 📋 Error Logs
+      description: Any error messages or logs from VS Code's Developer Console
+      placeholder: Paste error logs here...
+      render: text
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 📸 Screenshots
+      description: If applicable, add screenshots to help explain your problem
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ Checklist
+      description: Please confirm you have done the following
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have provided all the requested information
+          required: true
+        - label: I can reproduce this issue consistently
+          required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 📝 Additional Context
+      description: Add any other context about the problem here

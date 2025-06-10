@@ -1,0 +1,332 @@
+name: 🚀 CI/CD Pipeline
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [ main, develop ]
+  release:
+    types: [published]
+
+env:
+  NODE_VERSION: '20.x'
+  VSCODE_VERSION: 'stable'
+
+jobs:
+  # Skip CI for draft PRs
+  check-pr:
+    name: Check PR Status
+    runs-on: ubuntu-latest
+    outputs:
+      should-skip: ${{ steps.skip-check.outputs.should-skip }}
+    steps:
+    - name: 🔍 Check if PR is draft
+      id: skip-check
+      run: |
+        if [ "${{ github.event.pull_request.draft }}" = "true" ]; then
+          echo "should-skip=true" >> $GITHUB_OUTPUT
+          echo "⏭️ Skipping CI for draft PR"
+        else
+          echo "should-skip=false" >> $GITHUB_OUTPUT
+          echo "✅ Running CI for ready PR"
+        fi
+
+  # Install and cache dependencies
+  setup:
+    name: Setup Dependencies
+    runs-on: ubuntu-latest
+    needs: check-pr
+    if: needs.check-pr.outputs.should-skip != 'true'
+    outputs:
+      cache-key: ${{ steps.cache.outputs.cache-hit }}
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Cache node_modules
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        restore-keys: |
+          node-modules-${{ runner.os }}-
+          
+    - name: 📦 Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: npm ci
+
+  # Lint and format check
+  lint:
+    name: 🔍 Lint & Format
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Restore dependencies
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        
+    - name: 🔍 Run ESLint
+      run: npm run lint
+      
+    - name: 📏 Check TypeScript
+      run: npx tsc --noEmit
+
+  # Run comprehensive tests
+  test:
+    name: 🧪 Test Suite
+    runs-on: ${{ matrix.os }}
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18.x, 20.x]
+        vscode-version: [stable, insiders]
+        exclude:
+          # Reduce matrix size for efficiency
+          - os: windows-latest
+            node-version: 18.x
+          - os: macos-latest
+            node-version: 18.x
+          - os: windows-latest
+            vscode-version: insiders
+          - os: macos-latest
+            vscode-version: insiders
+    
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: 📦 Restore dependencies
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 🏗️ Compile TypeScript
+      run: npm run compile
+      
+    - name: 🧪 Run tests (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        export DISPLAY=:99
+        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+        npm test
+      env:
+        VSCODE_VERSION: ${{ matrix.vscode-version }}
+        
+    - name: 🧪 Run tests (Windows)
+      if: matrix.os == 'windows-latest'
+      run: npm test
+      env:
+        VSCODE_VERSION: ${{ matrix.vscode-version }}
+        
+    - name: 🧪 Run tests (macOS)
+      if: matrix.os == 'macos-latest'
+      run: npm test
+      env:
+        VSCODE_VERSION: ${{ matrix.vscode-version }}
+        
+    - name: 📊 Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-${{ matrix.os }}-node${{ matrix.node-version }}-vscode${{ matrix.vscode-version }}
+        path: |
+          test-results.xml
+          .vscode-test/
+        retention-days: 7
+
+  # Build and package extension
+  build:
+    name: 📦 Build Extension
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Restore dependencies
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 🏗️ Compile TypeScript
+      run: npm run compile
+      
+    - name: 📦 Install VSCE
+      run: npm install -g @vscode/vsce
+      
+    - name: 📦 Package extension
+      run: vsce package --no-dependencies
+      
+    - name: 📁 Upload VSIX
+      uses: actions/upload-artifact@v4
+      with:
+        name: filemet-extension
+        path: "*.vsix"
+        retention-days: 30
+
+  # Security audit
+  security:
+    name: 🔒 Security Audit
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Restore dependencies
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 🔒 Run npm audit
+      run: |
+        echo "🔍 Running security audit..."
+        if npm audit --audit-level=moderate; then
+          echo "✅ No moderate+ vulnerabilities found"
+        else
+          echo "⚠️ Vulnerabilities detected, checking severity..."
+          if npm audit --audit-level=high --json | jq '.vulnerabilities | length' | grep -q '^0$'; then
+            echo "✅ No high-severity vulnerabilities found"
+          else
+            echo "❌ High-severity vulnerabilities detected"
+            npm audit --audit-level=high
+            exit 1
+          fi
+        fi
+
+  # Check for potential issues
+  quality-gates:
+    name: 🎯 Quality Gates
+    runs-on: ubuntu-latest
+    needs: [lint, test, security]
+    if: github.event_name == 'pull_request'
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔍 Check PR size
+      run: |
+        FILES_CHANGED=$(git diff --name-only origin/main...HEAD | wc -l)
+        LINES_CHANGED=$(git diff --stat origin/main...HEAD | tail -1 | grep -o '[0-9]\+ insertions\|[0-9]\+ deletions' | grep -o '[0-9]\+' | paste -sd+ | bc || echo 0)
+        
+        echo "📊 PR Statistics:"
+        echo "Files changed: $FILES_CHANGED"
+        echo "Lines changed: $LINES_CHANGED"
+        
+        if [ $FILES_CHANGED -gt 50 ]; then
+          echo "⚠️ Large PR detected ($FILES_CHANGED files). Consider breaking it down."
+        fi
+        
+        if [ $LINES_CHANGED -gt 1000 ]; then
+          echo "⚠️ Large changeset detected ($LINES_CHANGED lines). Consider breaking it down."
+        fi
+        
+    - name: 🏷️ Check version bump
+      if: github.base_ref == 'main'
+      run: |
+        CURRENT_VERSION=$(jq -r '.version' package.json)
+        git fetch origin main
+        MAIN_VERSION=$(git show origin/main:package.json | jq -r '.version')
+        
+        if [ "$CURRENT_VERSION" = "$MAIN_VERSION" ]; then
+          echo "⚠️ Version not bumped in package.json"
+          echo "Current: $CURRENT_VERSION, Main: $MAIN_VERSION"
+          echo "Consider updating the version for this release."
+        else
+          echo "✅ Version bumped: $MAIN_VERSION → $CURRENT_VERSION"
+        fi
+
+  # Auto-publish on release
+  publish:
+    name: 🚀 Publish Extension
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    environment: production
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 🏗️ Compile TypeScript
+      run: npm run compile
+      
+    - name: 📦 Install VSCE
+      run: npm install -g @vscode/vsce
+      
+    - name: 🚀 Publish to Marketplace
+      run: vsce publish --no-dependencies
+      env:
+        VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        
+    - name: 📦 Package for GitHub Release
+      run: vsce package --no-dependencies
+      
+    - name: 📁 Upload to Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: filemet-${{ github.event.release.tag_name }}.vsix
+        asset_name: filemet-${{ github.event.release.tag_name }}.vsix
+        asset_content_type: application/zip

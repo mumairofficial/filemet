@@ -1,0 +1,369 @@
+name: 🤖 Issue & PR Management
+
+on:
+  issues:
+    types: [opened, labeled]
+  pull_request:
+    types: [opened, labeled, ready_for_review]
+  issue_comment:
+    types: [created]
+
+jobs:
+  label-new-issues:
+    name: 🏷️ Auto-label Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues' && github.event.action == 'opened'
+    steps:
+    - name: 🏷️ Add labels based on content
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const issue = context.payload.issue;
+          const title = issue.title.toLowerCase();
+          const body = issue.body ? issue.body.toLowerCase() : '';
+          
+          const labels = [];
+          
+          // Bug detection
+          if (title.includes('bug') || title.includes('error') || title.includes('issue') || 
+              body.includes('error') || body.includes('exception') || body.includes('crash')) {
+            labels.push('bug');
+          }
+          
+          // Feature request detection
+          if (title.includes('feature') || title.includes('enhancement') || title.includes('add') ||
+              body.includes('feature request') || body.includes('enhancement')) {
+            labels.push('enhancement');
+          }
+          
+          // Documentation
+          if (title.includes('doc') || title.includes('readme') || 
+              body.includes('documentation') || body.includes('docs')) {
+            labels.push('documentation');
+          }
+          
+          // Framework-specific labels
+          if (body.includes('react') || title.includes('react')) {
+            labels.push('framework: react');
+          }
+          if (body.includes('next.js') || body.includes('nextjs') || title.includes('next')) {
+            labels.push('framework: nextjs');
+          }
+          if (body.includes('vue') || title.includes('vue')) {
+            labels.push('framework: vue');
+          }
+          if (body.includes('angular') || title.includes('angular')) {
+            labels.push('framework: angular');
+          }
+          if (body.includes('python') || title.includes('python')) {
+            labels.push('language: python');
+          }
+          if (body.includes('go') || body.includes('golang') || title.includes('go')) {
+            labels.push('language: go');
+          }
+          
+          // Priority detection
+          if (title.includes('urgent') || title.includes('critical') || 
+              body.includes('urgent') || body.includes('critical')) {
+            labels.push('priority: high');
+          }
+          
+          // Difficulty estimation
+          if (title.includes('simple') || title.includes('easy') || 
+              body.includes('simple') || body.includes('easy')) {
+            labels.push('good first issue');
+          }
+          
+          if (labels.length > 0) {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: labels
+            });
+          }
+
+  label-new-prs:
+    name: 🏷️ Auto-label PRs
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🏷️ Add labels based on changes
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = context.payload.pull_request;
+          const title = pr.title.toLowerCase();
+          
+          const labels = [];
+          
+          // Get changed files
+          const files = await github.rest.pulls.listFiles({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: pr.number
+          });
+          
+          const changedFiles = files.data.map(file => file.filename);
+          const hasTests = changedFiles.some(file => file.includes('test') || file.includes('spec'));
+          const hasSource = changedFiles.some(file => file.endsWith('.ts') && !file.includes('test'));
+          const hasDocs = changedFiles.some(file => file.includes('README') || file.includes('.md'));
+          const hasPackageJson = changedFiles.some(file => file.includes('package.json'));
+          const hasWorkflow = changedFiles.some(file => file.includes('.github/workflows'));
+          
+          // Type of change
+          if (title.includes('fix') || title.includes('bug')) {
+            labels.push('bug fix');
+          }
+          if (title.includes('feat') || title.includes('feature') || title.includes('add')) {
+            labels.push('enhancement');
+          }
+          if (title.includes('docs') || title.includes('documentation')) {
+            labels.push('documentation');
+          }
+          if (title.includes('chore') || title.includes('refactor')) {
+            labels.push('maintenance');
+          }
+          if (title.includes('test')) {
+            labels.push('tests');
+          }
+          
+          // File-based labels
+          if (hasTests) {
+            labels.push('tests');
+          }
+          if (hasDocs) {
+            labels.push('documentation');
+          }
+          if (hasPackageJson) {
+            labels.push('dependencies');
+          }
+          if (hasWorkflow) {
+            labels.push('ci/cd');
+          }
+          
+          // Size estimation
+          const totalChanges = files.data.reduce((sum, file) => sum + file.additions + file.deletions, 0);
+          if (totalChanges < 50) {
+            labels.push('size: small');
+          } else if (totalChanges < 200) {
+            labels.push('size: medium');
+          } else {
+            labels.push('size: large');
+          }
+          
+          // Framework-specific changes
+          if (changedFiles.some(file => file.includes('frameworkTemplates'))) {
+            labels.push('framework templates');
+          }
+          if (changedFiles.some(file => file.includes('customExpression'))) {
+            labels.push('custom expressions');
+          }
+          if (changedFiles.some(file => file.includes('parser'))) {
+            labels.push('parser');
+          }
+          
+          if (labels.length > 0) {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: labels
+            });
+          }
+
+  welcome-first-contribution:
+    name: 👋 Welcome First Contributors
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+    - name: 👋 Welcome message
+      uses: actions/github-script@v7
+      with:
+        script: |
+          // Check if this is the user's first contribution
+          const pr = context.payload.pull_request;
+          const author = pr.user.login;
+          
+          const { data: pulls } = await github.rest.pulls.list({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            creator: author,
+            state: 'all'
+          });
+          
+          // If this is their first PR
+          if (pulls.length === 1) {
+            const welcomeMessage = `
+          👋 **Welcome to Filemet!**
+          
+          Thank you for your first contribution to Filemet! 🎉
+          
+          Here are a few things to help you get started:
+          
+          📋 **Before merging, please ensure:**
+          - [ ] Tests are passing ✅
+          - [ ] Code follows our style guidelines
+          - [ ] Documentation is updated if needed
+          - [ ] Changes are covered by tests
+          
+          🤖 **Automated checks:**
+          - Our CI will run tests across multiple platforms
+          - Code quality checks will verify formatting and linting
+          - Security audits will check for vulnerabilities
+          
+          ❓ **Need help?**
+          - Check out our [contributing guidelines](../CONTRIBUTING.md)
+          - Feel free to ask questions in this PR
+          - Join our discussions for any clarifications
+          
+          Thanks again for contributing! 🚀
+          `;
+          
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: welcomeMessage
+            });
+            
+            // Add first-time contributor label
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: ['first-time contributor']
+            });
+          }
+
+  check-pr-requirements:
+    name: ✅ Check PR Requirements
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: ✅ Validate PR
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = context.payload.pull_request;
+          const issues = [];
+          
+          // Check PR title format
+          const title = pr.title;
+          const validPrefixes = ['feat:', 'fix:', 'docs:', 'chore:', 'test:', 'refactor:', 'style:'];
+          const hasValidPrefix = validPrefixes.some(prefix => title.toLowerCase().startsWith(prefix));
+          
+          if (!hasValidPrefix) {
+            issues.push('❌ PR title should start with a conventional commit type (feat:, fix:, docs:, etc.)');
+          }
+          
+          // Check PR description
+          if (!pr.body || pr.body.trim().length < 20) {
+            issues.push('❌ PR description is too short. Please provide more details.');
+          }
+          
+          // Check for breaking changes
+          if (title.includes('!') || (pr.body && pr.body.includes('BREAKING CHANGE'))) {
+            issues.push('⚠️ This PR contains breaking changes. Ensure version is properly bumped.');
+          }
+          
+          // Get changed files to check requirements
+          const files = await github.rest.pulls.listFiles({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: pr.number
+          });
+          
+          const changedFiles = files.data.map(file => file.filename);
+          const hasSourceChanges = changedFiles.some(file => 
+            file.endsWith('.ts') && 
+            !file.includes('test') && 
+            file.startsWith('src/')
+          );
+          const hasTests = changedFiles.some(file => 
+            file.includes('test') || file.includes('spec')
+          );
+          
+          // If source code changed, tests should be updated
+          if (hasSourceChanges && !hasTests) {
+            issues.push('⚠️ Source code changes detected but no test updates. Consider adding tests.');
+          }
+          
+          // Check for package.json changes without lock file
+          const hasPackageJson = changedFiles.includes('package.json');
+          const hasLockFile = changedFiles.includes('package-lock.json');
+          
+          if (hasPackageJson && !hasLockFile) {
+            issues.push('❌ package.json changed but package-lock.json not updated. Run npm install.');
+          }
+          
+          if (issues.length > 0) {
+            const comment = `
+          ## 📋 PR Review Checklist
+          
+          The following issues were found:
+          
+          ${issues.map(issue => `${issue}`).join('\n')}
+          
+          Please address these items before the PR can be merged.
+          `;
+          
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: comment
+            });
+          } else {
+            const comment = `
+          ## ✅ PR Requirements Check
+          
+          All requirements met! This PR is ready for review.
+          
+          📋 **Validated:**
+          - ✅ Conventional commit title format
+          - ✅ Adequate PR description
+          - ✅ Test coverage considerations
+          - ✅ Dependency file consistency
+          `;
+          
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: comment
+            });
+          }
+
+  auto-assign-reviewers:
+    name: 👥 Auto-assign Reviewers
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'ready_for_review'
+    steps:
+    - name: 👥 Request reviews
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const pr = context.payload.pull_request;
+          const author = pr.user.login;
+          
+          // Define code owners/reviewers (adjust as needed)
+          const reviewers = ['mumairofficial']; // Add more maintainers here
+          
+          // Don't request review from the PR author
+          const availableReviewers = reviewers.filter(reviewer => reviewer !== author);
+          
+          if (availableReviewers.length > 0) {
+            await github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              reviewers: availableReviewers.slice(0, 2) // Max 2 reviewers
+            });
+          }

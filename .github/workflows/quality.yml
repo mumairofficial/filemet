@@ -1,0 +1,318 @@
+name: 📊 Code Quality & Performance
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+  schedule:
+    # Run weekly performance benchmarks
+    - cron: '0 6 * * 0'
+
+jobs:
+  performance-test:
+    name: ⚡ Performance Testing
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 🏗️ Compile TypeScript
+      run: npm run compile
+      
+    - name: ⚡ Run performance tests
+      run: |
+        echo "🧪 Running performance benchmarks..."
+        
+        # Create a performance test script
+        cat > performance-test.js << 'EOF'
+        const { FileStructureParser } = require('./out/fileStructureParser');
+        const { performance } = require('perf_hooks');
+        
+        const parser = new FileStructureParser();
+        
+        // Test expressions of varying complexity
+        const testCases = [
+          'simple.js',
+          'folder/file.js',
+          'src/{component1.jsx,component2.jsx,component3.jsx}',
+          'src/{components/{Header.jsx,Footer.jsx,Nav.jsx},hooks/{useAuth.js,useApi.js},utils/{helpers.js,constants.js}}',
+          'app/{page.tsx,layout.tsx,(dashboard)/{page.tsx,analytics/page.tsx,settings/page.tsx},api/{users/route.ts,auth/route.ts}}',
+          // Complex framework template
+          'src/{components/{ui/{Button.tsx,Modal.tsx,Input.tsx,Card.tsx},layout/{Header.tsx,Footer.tsx,Sidebar.tsx}},hooks/{useAuth.ts,useApi.ts,useLocalStorage.ts},services/{api.ts,auth.ts},utils/{helpers.ts,constants.ts},types/{user.ts,api.ts}} + tests/{unit/{components/,utils/},integration/,e2e/} + docs/{api.md,getting-started.md}'
+        ];
+        
+        console.log('📊 Performance Test Results:');
+        console.log('==========================================');
+        
+        let totalTime = 0;
+        let totalFiles = 0;
+        
+        testCases.forEach((expression, index) => {
+          const startTime = performance.now();
+          const result = parser.parse(expression);
+          const endTime = performance.now();
+          const duration = endTime - startTime;
+          
+          totalTime += duration;
+          if (Array.isArray(result)) {
+            totalFiles += result.length;
+            console.log(`Test ${index + 1}: ${duration.toFixed(2)}ms (${result.length} files)`);
+          } else {
+            console.log(`Test ${index + 1}: ${duration.toFixed(2)}ms (ERROR: ${result})`);
+          }
+        });
+        
+        console.log('==========================================');
+        console.log(`Total time: ${totalTime.toFixed(2)}ms`);
+        console.log(`Total files: ${totalFiles}`);
+        console.log(`Average per test: ${(totalTime / testCases.length).toFixed(2)}ms`);
+        console.log(`Files per ms: ${(totalFiles / totalTime).toFixed(2)}`);
+        
+        // Performance thresholds
+        const avgTimePerTest = totalTime / testCases.length;
+        const filesPerMs = totalFiles / totalTime;
+        
+        if (avgTimePerTest > 50) {
+          console.error('❌ Performance regression: Average test time exceeds 50ms');
+          process.exit(1);
+        }
+        
+        if (filesPerMs < 0.1) {
+          console.error('❌ Performance regression: Files per ms below threshold');
+          process.exit(1);
+        }
+        
+        console.log('✅ Performance tests passed');
+        EOF
+        
+        node performance-test.js
+        
+    - name: 📊 Memory usage test
+      run: |
+        echo "🧠 Testing memory usage..."
+        
+        cat > memory-test.js << 'EOF'
+        const { FileStructureParser } = require('./out/fileStructureParser');
+        
+        const parser = new FileStructureParser();
+        
+        // Monitor memory usage
+        const initialMemory = process.memoryUsage();
+        console.log('Initial memory:', initialMemory);
+        
+        // Create many parser instances and parse complex expressions
+        const parsers = [];
+        for (let i = 0; i < 100; i++) {
+          const p = new FileStructureParser();
+          const result = p.parse('src/{components/{Button.tsx,Modal.tsx},hooks/{useAuth.ts,useApi.ts},utils/helpers.ts}');
+          parsers.push(p);
+        }
+        
+        const finalMemory = process.memoryUsage();
+        console.log('Final memory:', finalMemory);
+        
+        const memoryIncrease = finalMemory.heapUsed - initialMemory.heapUsed;
+        console.log(`Memory increase: ${(memoryIncrease / 1024 / 1024).toFixed(2)} MB`);
+        
+        // Threshold: less than 50MB increase for 100 parser instances
+        if (memoryIncrease > 50 * 1024 * 1024) {
+          console.error('❌ Memory usage too high');
+          process.exit(1);
+        }
+        
+        console.log('✅ Memory usage test passed');
+        EOF
+        
+        node memory-test.js
+
+  code-coverage:
+    name: 📊 Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 📦 Install coverage tools
+      run: npm install --save-dev c8 nyc
+      
+    - name: 🧪 Run tests with coverage
+      run: |
+        export DISPLAY=:99
+        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+        
+        # Run tests with coverage
+        npx c8 --reporter=text --reporter=html --reporter=lcov npm test
+        
+    - name: 📊 Coverage summary
+      run: |
+        if [ -f "coverage/lcov.info" ]; then
+          echo "📊 Coverage Report Generated"
+          npx c8 report --reporter=text-summary
+        else
+          echo "⚠️ No coverage report found"
+        fi
+        
+    - name: 📁 Upload coverage reports
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        retention-days: 30
+
+  bundle-size:
+    name: 📦 Bundle Size Analysis
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 🏗️ Compile TypeScript
+      run: npm run compile
+      
+    - name: 📊 Analyze bundle size
+      run: |
+        echo "📦 Analyzing compiled bundle size..."
+        
+        # Calculate total size of compiled JS files
+        TOTAL_SIZE=$(find out -name "*.js" -exec wc -c {} + | tail -1 | awk '{print $1}')
+        TOTAL_SIZE_KB=$((TOTAL_SIZE / 1024))
+        
+        echo "Total compiled size: ${TOTAL_SIZE_KB} KB"
+        
+        # List individual file sizes
+        echo "📁 Individual file sizes:"
+        find out -name "*.js" -exec ls -lh {} \; | awk '{print $5 "\t" $9}'
+        
+        # Check for size regression (threshold: 500KB)
+        if [ $TOTAL_SIZE_KB -gt 500 ]; then
+          echo "⚠️ Bundle size is large: ${TOTAL_SIZE_KB} KB"
+          echo "Consider optimizing or code splitting"
+        else
+          echo "✅ Bundle size is acceptable: ${TOTAL_SIZE_KB} KB"
+        fi
+        
+        # Save size info for comparison
+        echo "$TOTAL_SIZE_KB" > bundle-size.txt
+        
+    - name: 📊 Compare with base branch
+      if: github.event_name == 'pull_request'
+      run: |
+        # Fetch base branch
+        git fetch origin ${{ github.base_ref }}
+        
+        # Checkout base branch and build
+        git checkout origin/${{ github.base_ref }}
+        npm ci
+        npm run compile
+        
+        BASE_SIZE=$(find out -name "*.js" -exec wc -c {} + | tail -1 | awk '{print $1}')
+        BASE_SIZE_KB=$((BASE_SIZE / 1024))
+        
+        # Switch back to PR branch
+        git checkout ${{ github.sha }}
+        CURRENT_SIZE_KB=$(cat bundle-size.txt)
+        
+        SIZE_DIFF=$((CURRENT_SIZE_KB - BASE_SIZE_KB))
+        
+        echo "📊 Bundle Size Comparison:"
+        echo "Base branch: ${BASE_SIZE_KB} KB"
+        echo "Current PR: ${CURRENT_SIZE_KB} KB"
+        echo "Difference: ${SIZE_DIFF} KB"
+        
+        if [ $SIZE_DIFF -gt 50 ]; then
+          echo "⚠️ Bundle size increased significantly (+${SIZE_DIFF} KB)"
+        elif [ $SIZE_DIFF -lt -10 ]; then
+          echo "🎉 Bundle size decreased by ${SIZE_DIFF#-} KB"
+        else
+          echo "✅ Bundle size change is acceptable"
+        fi
+
+  complexity-analysis:
+    name: 🧮 Code Complexity
+    runs-on: ubuntu-latest
+    steps:
+    - name: 📁 Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: 🔧 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 📦 Install complexity tools
+      run: npm install --save-dev complexity-report typescript-eslint-parser
+      
+    - name: 🧮 Run complexity analysis
+      run: |
+        echo "🧮 Analyzing code complexity..."
+        
+        # Find TypeScript files
+        TS_FILES=$(find src -name "*.ts" ! -name "*.test.ts" ! -name "*.spec.ts")
+        
+        echo "📁 Files to analyze:"
+        echo "$TS_FILES"
+        
+        # Simple complexity check using grep and wc
+        for file in $TS_FILES; do
+          echo "📄 $file:"
+          
+          LINES=$(wc -l < "$file")
+          FUNCTIONS=$(grep -c "function\|=>" "$file" || echo 0)
+          CLASSES=$(grep -c "class " "$file" || echo 0)
+          IF_STATEMENTS=$(grep -c "if\s*(" "$file" || echo 0)
+          LOOPS=$(grep -c "for\s*(\|while\s*(" "$file" || echo 0)
+          
+          echo "  Lines: $LINES"
+          echo "  Functions: $FUNCTIONS"
+          echo "  Classes: $CLASSES"
+          echo "  Conditionals: $IF_STATEMENTS"
+          echo "  Loops: $LOOPS"
+          
+          # Simple complexity score
+          COMPLEXITY_SCORE=$((IF_STATEMENTS + LOOPS + FUNCTIONS))
+          echo "  Complexity Score: $COMPLEXITY_SCORE"
+          
+          if [ $LINES -gt 500 ]; then
+            echo "  ⚠️ File is large (>500 lines)"
+          fi
+          
+          if [ $COMPLEXITY_SCORE -gt 50 ]; then
+            echo "  ⚠️ High complexity score"
+          fi
+          
+          echo ""
+        done
+        
+        echo "✅ Complexity analysis completed"
