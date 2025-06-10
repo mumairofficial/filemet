@@ -1,23 +1,58 @@
 {
   "name": "filemet",
   "displayName": "Filemet",
-  "description": "Create complex file and folder structures in seconds using Emmet-inspired expressions.",
+  "description": "Blazing-fast Emmet-style file & folder generator for VS Code.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.100.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Programming Languages",
+    "Snippets"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mumairofficial/filemet.git"
+  },
+  "keywords": [
+    "file",
+    "folder",
+    "create",
+    "emmet",
+    "scaffold",
+    "scaffolding",
+    "nested",
+    "structure",
+    "filestructure",
+    "vscode",
+    "bulk",
+    "extension"
+  ],
+  "icon": "images/icon.png",
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "filemet.helloWorld",
-        "title": "Hello World"
+        "command": "filemet.createFiles",
+        "title": "Filemet: Create Files From Expression"
+      },
+      {
+        "command": "filemet.createStructure",
+        "title": "Create File & Folder Structure from Expression",
+        "category": "Filemet: Emmet-Style Generator"
       }
-    ]
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "filemet.createStructure",
+          "group": "2_workspace@1"
+        }
+      ]
+    },
+    "keybindings": []
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

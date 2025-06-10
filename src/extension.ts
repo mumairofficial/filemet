@@ -1,26 +1,112 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
+import { FileStructureParser } from './fileStructureParser';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+// Main extension activation function
 export function activate(context: vscode.ExtensionContext) {
+    const parser = new FileStructureParser();
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "filemet" is now active!');
+    // Register command to create file structure from context menu
+    const createStructureCommand = vscode.commands.registerCommand(
+        'filemet.createStructure',
+        async (uri: vscode.Uri) => {
+            // Determine the target directory
+            let targetPath: string;
+            
+            if (uri) {
+                // Called from context menu
+                const stat = await vscode.workspace.fs.stat(uri);
+                if (stat.type === vscode.FileType.Directory) {
+                    // Right-clicked on a folder
+                    targetPath = uri.fsPath;
+                } else {
+                    // Right-clicked on a file, use its parent directory
+                    targetPath = path.dirname(uri.fsPath);
+                }
+            } else {
+                // Fallback to workspace root
+                const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                if (!workspaceFolder) {
+                    vscode.window.showErrorMessage('No workspace folder found');
+                    return;
+                }
+                targetPath = workspaceFolder.uri.fsPath;
+            }
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('filemet.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from Filemet!');
-	});
+            // Show input box for the expression
+            const expression = await vscode.window.showInputBox({
+                prompt: 'Enter file structure expression',
+                placeHolder: 'e.g., components/{Header.jsx,Footer.jsx} + utils/helpers.js',
+                value: '',
+                title: 'Create File Structure'
+            });
 
-	context.subscriptions.push(disposable);
+            if (!expression) {
+                return;
+            }
+
+            // Parse the expression
+            const result = parser.parse(expression);
+            
+            if (typeof result === 'string') {
+                vscode.window.showErrorMessage(result);
+                return;
+            }
+
+            // Create the files and folders
+            try {
+                const createdFiles: string[] = [];
+                const createdFolders: string[] = [];
+
+                for (const filePath of result) {
+                    const fullPath = path.join(targetPath, filePath);
+                    const dirPath = path.dirname(fullPath);
+
+                    // Create directory if it doesn't exist
+                    if (!fs.existsSync(dirPath)) {
+                        fs.mkdirSync(dirPath, { recursive: true });
+                        
+                        // Track created folders
+                        const relativeDirPath = path.relative(targetPath, dirPath);
+                        if (relativeDirPath && !createdFolders.includes(relativeDirPath)) {
+                            createdFolders.push(relativeDirPath);
+                        }
+                    }
+
+                    // Create file if it doesn't exist
+                    if (!fs.existsSync(fullPath)) {
+                        fs.writeFileSync(fullPath, '');
+                        createdFiles.push(filePath);
+                    }
+                }
+
+                // Show success message
+                let message = '';
+                if (createdFiles.length > 0) {
+                    message += `Created ${createdFiles.length} files`;
+                }
+                if (createdFolders.length > 0) {
+                    if (message) message += ' and ';
+                    message += `${createdFolders.length} folders`;
+                }
+                
+                if (message) {
+                    vscode.window.showInformationMessage(message);
+                } else {
+                    vscode.window.showWarningMessage('All files and folders already exist');
+                }
+
+                // Refresh the explorer
+                vscode.commands.executeCommand('workbench.files.action.refreshFilesExplorer');
+
+            } catch (error) {
+                vscode.window.showErrorMessage(`Error creating files: ${error}`);
+            }
+        }
+    );
+
+    context.subscriptions.push(createStructureCommand);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}

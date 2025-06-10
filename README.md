@@ -1,71 +1,136 @@
-# filemet README
+## 📁 Filemet - Emmet-Inspired File & Folder Generator for VS Code
 
-This is the README for your extension "filemet". After writing up a brief description, we recommend including the following sections.
+**Filemet** is a blazing-fast, Emmet-style file and folder structure generator for Visual Studio Code. Type expressive path-like syntax and instantly scaffold deeply nested folders and files — no more tedious clicking.
 
-## Features
-
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
-
-## Extension Settings
-
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
+> ✨ Perfect for frontend, backend, and fullstack projects — React, Next.js, Node.js, Go, Python, and beyond.
 
 ---
 
-## Following extension guidelines
+### 🚀 Features
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+* Emmet-inspired syntax for creating files & folders
+* Supports deep nesting and grouping
+* Multiple separator types: `+`, `,`
+* Mix of bracket styles: `[]`, `{}`, `()`
+* Works with dotfiles, extensions, and special characters
+* Smart whitespace handling
+* Real-time feedback on invalid syntax
+* Perfect for bootstrapping complex project scaffolds
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+---
 
-## Working with Markdown
+## 🧠 Syntax Reference
 
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
+### 1. Folder Hierarchy
 
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
+* Use `/` to create subdirectories
+* `folder/file.ts` → `folder/file.ts`
 
-## For more information
+### 2. Multiple Files or Folders (Same Level)
 
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+* Use `+` or `,`
+* `file1.ts + file2.ts` → `file1.ts`, `file2.ts`
 
-**Enjoy!**
+### 3. Grouping
+
+* Use `[...]`, `{...}`, or `(...)`
+* `components{Button.tsx,Header.tsx}` → `components/Button.tsx`, `components/Header.tsx`
+* `src[main.ts + utils.ts]` → `src/main.ts`, `src/utils.ts`
+
+### 4. Nested Grouping
+
+* `src{components{App.tsx + Nav.tsx} + utils{api.ts}}`
+  → `src/components/App.tsx`, `src/components/Nav.tsx`, `src/utils/api.ts`
+
+### 5. Whitespace Tolerance
+
+* Whitespace around paths is ignored: `folder / file.ts` → `folder/file.ts`
+
+### 6. Dotfiles & Extensions
+
+* `config{.env,.gitignore}` → `config/.env`, `config/.gitignore`
+
+---
+
+## ✅ Examples
+
+### Real-World Scenarios
+
+```bash
+components/{Header.tsx,Footer.tsx,Nav.tsx}
+src[components/App.tsx + utils/{api.ts,helpers.ts} + types/index.ts]
+features{auth/{components/LoginForm.tsx + hooks/useAuth.ts + types.ts}}
+```
+
+### React / Next.js
+
+```bash
+app/{layout.tsx + page.tsx + globals.css}
+pages/{api/users/route.ts + (dashboard)/{page.tsx,layout.tsx}}
+```
+
+### Node.js / Express
+
+```bash
+src/{controllers/{user.js,auth.js} + routes/users.js + middleware/auth.js}
+```
+
+### Go Projects
+
+```bash
+cmd/api/main.go + internal/{handlers/user.go + models/user.go} + pkg/database/db.go
+```
+
+### Python / Django
+
+```bash
+apps/{users/{models.py,views.py} + auth/{models.py,views.py}} + tests/test_users.py
+```
+
+---
+
+## 🧪 Test Coverage
+
+Check the [Test Cases](#test-cases-by-category) section for a full breakdown — from simple paths to complex edge cases.
+
+---
+
+## ⚠️ Error Handling
+
+Bad expressions are caught early. Examples:
+
+* `folder[unclosed` → ❌ Invalid (unclosed bracket)
+* `src({utils]}` → ❌ Invalid (mismatched brackets)
+* `+file.ts` → ✅ (leading `+` is ignored)
+
+---
+
+## 🔍 Search Keywords
+
+```
+vscode create multiple files
+folder structure generator
+emmet for files
+vscode file scaffold extension
+nested file tree from string
+vscode bulk file creation
+folder and file generator plugin
+```
+
+---
+
+## 📦 Installation
+
+Search for `Filemet` in the [VS Code Marketplace](https://marketplace.visualstudio.com/) or install directly via Extensions tab.
+
+---
+
+## 🤝 Contributions
+
+Pull requests welcome! Help improve parsing, suggest better syntax patterns, or expand on framework-specific templates.
+
+---
+
+## 📄 License
+
+MIT © Muhammad Umair
